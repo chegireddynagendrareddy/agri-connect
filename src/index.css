@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+@theme {
+  --color-agri-50: #f0fdf4;
+  --color-agri-100: #dcfce7;
+  --color-agri-200: #bbf7d0;
+  --color-agri-300: #86efac;
+  --color-agri-400: #4ade80;
+  --color-agri-500: #22c55e;
+  --color-agri-600: #16a34a;
+  --color-agri-700: #15803d;
+  --color-agri-800: #166534;
+  --color-agri-900: #14532d;
+  --color-agri-950: #052e16;
+
+  --color-earth-50: #fdfbf7;
+  --color-earth-100: #f7f4ed;
+  --color-earth-200: #e7dfd1;
+  --color-earth-300: #d5c6af;
+  --color-earth-400: #bfa787;
+  --color-earth-500: #a88965;
+  --color-earth-600: #8c6b4b;
+  --color-earth-700: #70523a;
+  --color-earth-800: #5c4230;
+  --color-earth-900: #4c3729;
+  --color-earth-950: #2a1d15;
+
+  --color-accent-amber: #f59e0b;
+  --color-accent-orange: #ea580c;
+  --color-accent-terracotta: #c2410c;
+
+  --font-sans: 'Inter', 'Plus Jakarta Sans', sans-serif;
+  --font-serif: 'Merriweather', serif;
+
+  --shadow-agri-soft: 0 4px 20px -2px rgba(22, 101, 52, 0.08);
+  --shadow-agri-glow: 0 0 25px rgba(34, 197, 94, 0.25);
+  --shadow-agri-card: 0 10px 30px -5px rgba(20, 83, 45, 0.06), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+}
+
+body {
+  background-color: #fdfbf7;
+  color: #1e293b;
+  font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f7f4ed;
+}
+::-webkit-scrollbar-thumb {
+  background: #a7f3d0;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #10b981;
+}
+
+/* Glassmorphism classes */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.glass-dark {
+  background: rgba(15, 45, 26, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Agriculture Leaf Pattern Background */
+.bg-leaf-pattern {
+  background-color: #052e16;
+  background-image: radial-gradient(#16a34a 0.75px, transparent 0.75px), radial-gradient(#16a34a 0.75px, #052e16 0.75px);
+  background-size: 30px 30px;
+  background-position: 0 0, 15px 15px;
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-12px) rotate(4deg); }
+}
+
+.animate-float-slow {
+  animation: float 6s ease-in-out infinite;
+}

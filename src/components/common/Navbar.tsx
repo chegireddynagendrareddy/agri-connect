@@ -98,19 +98,28 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="hidden lg:flex items-center space-x-2 bg-agri-900/80 px-2.5 py-0.5 rounded-full border border-agri-700/50">
           <span className="text-[10px] uppercase text-agri-400 font-bold">Switch Role:</span>
           <button
-            onClick={() => switchRole('buyer')}
+            onClick={() => {
+              switchRole('buyer');
+              setActiveTab('buyer_dashboard');
+            }}
             className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${user?.role === 'buyer' ? 'bg-agri-500 text-white' : 'hover:text-white'}`}
           >
             Buyer
           </button>
           <button
-            onClick={() => switchRole('farmer')}
+            onClick={() => {
+              switchRole('farmer');
+              setActiveTab('farmer_dashboard');
+            }}
             className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${user?.role === 'farmer' ? 'bg-agri-500 text-white' : 'hover:text-white'}`}
           >
             Farmer
           </button>
           <button
-            onClick={() => switchRole('admin')}
+            onClick={() => {
+              switchRole('admin');
+              setActiveTab('admin_dashboard');
+            }}
             className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${user?.role === 'admin' ? 'bg-amber-600 text-white' : 'hover:text-white'}`}
           >
             Admin

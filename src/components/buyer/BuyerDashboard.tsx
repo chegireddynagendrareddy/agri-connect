@@ -182,7 +182,7 @@ export const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ onSelectProduct 
                     <h3 className="text-xl font-black text-agri-950">{selectedOrder.order_number}</h3>
                   </div>
                   <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-extrabold">
-                    {selectedOrder.payment_status.toUpperCase()} (Razorpay)
+                    {selectedOrder.payment_status.toUpperCase()} ({selectedOrder.payment_method})
                   </span>
                 </div>
 

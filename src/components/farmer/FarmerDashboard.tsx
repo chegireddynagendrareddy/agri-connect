@@ -2,21 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
   Package, 
-  PlusCircle, 
   ShoppingBag, 
-  IndianRupee, 
   Warehouse, 
-  UserCheck, 
-  CheckCircle2, 
-  Clock, 
-  Trash2, 
+  IndianRupee, 
+  PlusCircle, 
   Edit3, 
-  Sparkles, 
-  AlertTriangle,
+  Trash2, 
+  CheckCircle, 
+  Clock, 
+  AlertCircle, 
   LogOut,
   X,
-  Upload,
-  ArrowUpRight
+  Truck,
+  Box,
+  CheckCheck,
+  UserCheck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
@@ -27,12 +27,15 @@ export const FarmerDashboard: React.FC = () => {
   const { user, farmerProfile, logout } = useAuth();
   const { showToast } = useNotification();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'add_product' | 'orders' | 'inventory' | 'earnings'>('overview');
-  
+  const farmerId = farmerProfile?.id || user?.id || 'frm_1';
+
+  // Navigation Tabs
+  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'inventory' | 'earnings'>('overview');
+
+  // Dashboard Data
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Add/Edit Product Modal State
   const [showProductModal, setShowProductModal] = useState<boolean>(false);
@@ -42,42 +45,36 @@ export const FarmerDashboard: React.FC = () => {
     title: '',
     category_id: 'spices',
     description: '',
-    price: 200,
+    price: 100,
     unit: 'kg',
     available_quantity: 100,
     min_order_quantity: 1,
     harvest_date: new Date().toISOString().split('T')[0],
     is_organic: true,
     image_url_1: 'https://images.unsplash.com/photo-1588252303782-cb80119abd6d?auto=format&fit=crop&w=800&q=80',
-    image_url_2: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=80'
+    image_url_2: ''
   });
-
-  const farmerId = farmerProfile?.id || 'frm_1';
-
-  const loadDashboardData = async () => {
-    setIsLoading(true);
-    try {
-      const [allProducts, allOrders, allCategories] = await Promise.all([
-        dbService.getProducts({ farmer_id: farmerId, status: undefined }),
-        dbService.getOrders({ farmer_id: farmerId }),
-        dbService.getCategories()
-      ]);
-      setProducts(allProducts);
-      setOrders(allOrders);
-      setCategories(allCategories);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   useEffect(() => {
     loadDashboardData();
   }, [farmerId]);
 
-  // Handle Save Product (Add or Edit)
+  const loadDashboardData = async () => {
+    const prods = await dbService.getProducts({ farmer_id: farmerId });
+    setProducts(prods || []);
+
+    const ords = await dbService.getOrders({ farmer_id: farmerId });
+    setOrders(ords || []);
+
+    const cats = await dbService.getCategories();
+    setCategories(cats || []);
+  };
+
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    const images = [productForm.image_url_1, productForm.image_url_2].filter(Boolean);
+
+    const images = [productForm.image_url_1];
+    if (productForm.image_url_2) images.push(productForm.image_url_2);
 
     if (editingProductId) {
       await dbService.updateProduct(editingProductId, {
@@ -134,7 +131,7 @@ export const FarmerDashboard: React.FC = () => {
 
   const handleUpdateOrderStatus = async (orderId: string, status: OrderStatus) => {
     await dbService.updateOrderStatus(orderId, status);
-    showToast('Order Status Updated', `Order marked as ${status.toUpperCase()}`, 'success');
+    showToast('Order Confirmed & Status Updated! 🚚', `Order status changed to ${status.replace(/_/g, ' ').toUpperCase()}`, 'success');
     loadDashboardData();
   };
 
@@ -143,7 +140,7 @@ export const FarmerDashboard: React.FC = () => {
   const activeProducts = products.filter((p) => p.status === 'approved').length;
   const totalOrders = orders.length;
   const pendingOrders = orders.filter((o) => o.status === 'confirmed' || o.status === 'processing').length;
-  const totalSales = orders.reduce((sum, o) => sum + (o.payment_status === 'paid' ? o.total_amount : 0), 0);
+  const totalSales = orders.reduce((sum, o) => sum + (o.payment_status === 'paid' || o.payment_method.includes('COD') ? o.total_amount : 0), 0);
   const totalStock = products.reduce((sum, p) => sum + p.available_quantity, 0);
 
   return (
@@ -171,21 +168,28 @@ export const FarmerDashboard: React.FC = () => {
             {[
               { id: 'overview', label: 'Dashboard Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
               { id: 'products', label: 'My Listed Products', icon: <Package className="w-4 h-4" /> },
-              { id: 'orders', label: 'Received Orders', icon: <ShoppingBag className="w-4 h-4" /> },
+              { id: 'orders', label: 'Received Orders', icon: <ShoppingBag className="w-4 h-4" />, count: pendingOrders },
               { id: 'inventory', label: 'Inventory & Stock', icon: <Warehouse className="w-4 h-4" /> },
               { id: 'earnings', label: 'Kisan Earnings ₹', icon: <IndianRupee className="w-4 h-4" /> }
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl transition ${
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition ${
                   activeTab === tab.id
                     ? 'bg-gradient-to-r from-agri-600 to-emerald-600 text-white shadow-lg'
                     : 'text-agri-200/80 hover:bg-agri-900 hover:text-white'
                 }`}
               >
-                {tab.icon}
-                <span>{tab.label}</span>
+                <div className="flex items-center space-x-3">
+                  {tab.icon}
+                  <span>{tab.label}</span>
+                </div>
+                {tab.count !== undefined && tab.count > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-agri-950">
+                    {tab.count}
+                  </span>
+                )}
               </button>
             ))}
           </nav>
@@ -207,7 +211,7 @@ export const FarmerDashboard: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-agri-100 shadow-sm">
           <div>
             <h1 className="text-2xl font-black text-agri-950">Farmer Dashboard Portal</h1>
-            <p className="text-xs text-earth-600 mt-1">Manage crops, track live buyer orders and view Razorpay earnings</p>
+            <p className="text-xs text-earth-600 mt-1">Manage crops, confirm buyer orders and dispatch shipment logistics</p>
           </div>
 
           <button
@@ -266,9 +270,9 @@ export const FarmerDashboard: React.FC = () => {
               </div>
 
               <div className="bg-white p-4 rounded-3xl border border-agri-300 bg-agri-50/50 shadow-sm">
-                <p className="text-[11px] font-bold text-agri-800 uppercase">Total Sales</p>
+                <p className="text-[11px] font-bold text-agri-800 uppercase">Total Revenue</p>
                 <p className="text-2xl font-black text-agri-800 mt-1">₹{totalSales}</p>
-                <span className="text-[10px] text-agri-600 font-semibold">Razorpay payouts</span>
+                <span className="text-[10px] text-agri-600 font-semibold">COD & Razorpay</span>
               </div>
 
               <div className="bg-white p-4 rounded-3xl border border-earth-200 shadow-sm">
@@ -280,7 +284,15 @@ export const FarmerDashboard: React.FC = () => {
 
             {/* Recent Orders Table */}
             <div className="bg-white p-6 rounded-3xl border border-agri-100 shadow-agri-card space-y-4">
-              <h3 className="text-base font-extrabold text-agri-950">Recent Buyer Orders</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-extrabold text-agri-950">Recent Buyer Orders & Confirmation</h3>
+                <button
+                  onClick={() => setActiveTab('orders')}
+                  className="text-xs font-bold text-agri-700 hover:underline"
+                >
+                  View All Orders →
+                </button>
+              </div>
               
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
@@ -288,9 +300,10 @@ export const FarmerDashboard: React.FC = () => {
                     <tr className="border-b border-earth-200 text-earth-500 uppercase font-extrabold text-[10px]">
                       <th className="py-3 px-4">Order ID</th>
                       <th className="py-3 px-4">Buyer</th>
+                      <th className="py-3 px-4">Payment</th>
                       <th className="py-3 px-4">Amount</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4">Action</th>
+                      <th className="py-3 px-4">Current Status</th>
+                      <th className="py-3 px-4">Action Workflow</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-earth-100 font-semibold">
@@ -298,6 +311,13 @@ export const FarmerDashboard: React.FC = () => {
                       <tr key={ord.id} className="hover:bg-earth-50">
                         <td className="py-3 px-4 font-extrabold text-agri-950">{ord.order_number}</td>
                         <td className="py-3 px-4 text-earth-800">{ord.buyer_name}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            ord.payment_method.includes('COD') ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-900'
+                          }`}>
+                            {ord.payment_method}
+                          </span>
+                        </td>
                         <td className="py-3 px-4 font-black text-agri-800">₹{ord.total_amount}</td>
                         <td className="py-3 px-4">
                           <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase bg-agri-100 text-agri-800">
@@ -308,13 +328,14 @@ export const FarmerDashboard: React.FC = () => {
                           <select
                             value={ord.status}
                             onChange={(e) => handleUpdateOrderStatus(ord.id, e.target.value as any)}
-                            className="bg-earth-100 border border-earth-300 rounded-lg px-2 py-1 text-[11px] font-bold text-agri-900"
+                            className="bg-white border border-earth-300 rounded-lg px-2 py-1 text-[11px] font-bold text-agri-900 shadow-sm"
                           >
-                            <option value="confirmed">Confirmed</option>
-                            <option value="processing">Processing</option>
-                            <option value="packed">Packed</option>
-                            <option value="shipped">Shipped</option>
-                            <option value="delivered">Delivered</option>
+                            <option value="confirmed">Confirm & Accept</option>
+                            <option value="processing">Processing Harvest</option>
+                            <option value="packed">Packed in Crates</option>
+                            <option value="shipped">Dispatched / Shipped</option>
+                            <option value="out_for_delivery">Out for Delivery</option>
+                            <option value="delivered">Delivered to Buyer</option>
                           </select>
                         </td>
                       </tr>
@@ -324,6 +345,122 @@ export const FarmerDashboard: React.FC = () => {
               </div>
             </div>
 
+          </div>
+        )}
+
+        {/* FULL ORDERS MANAGEMENT TAB */}
+        {activeTab === 'orders' && (
+          <div className="bg-white p-6 lg:p-8 rounded-3xl border border-agri-100 shadow-agri-card space-y-6">
+            <div>
+              <h3 className="text-lg font-black text-agri-950">Received Buyer Orders & Fulfillment Workflow</h3>
+              <p className="text-xs text-earth-600 mt-1">Review incoming buyer purchases, confirm orders, and dispatch crop logistics</p>
+            </div>
+
+            <div className="space-y-4">
+              {orders.map((ord) => (
+                <div key={ord.id} className="p-5 rounded-2xl border-2 border-earth-200 bg-earth-50/50 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-earth-200 pb-3">
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-black text-agri-950">{ord.order_number}</span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+                          ord.payment_method.includes('COD') ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                        }`}>
+                          {ord.payment_method}
+                        </span>
+                      </div>
+                      <p className="text-xs text-earth-600 font-medium mt-0.5">
+                        Ordered on {new Date(ord.created_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <span className="text-base font-black text-agri-800">₹{ord.total_amount}</span>
+                      <span className="px-3 py-1 rounded-full text-xs font-black uppercase bg-agri-700 text-white shadow-sm">
+                        {ord.status.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Buyer & Delivery Info */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div className="p-3 bg-white rounded-xl border border-earth-200">
+                      <span className="font-extrabold text-agri-900 uppercase tracking-wider text-[10px]">Buyer Details</span>
+                      <p className="font-bold text-earth-900 mt-1">{ord.buyer_name}</p>
+                      <p className="text-earth-600">{ord.shipping_address?.phone}</p>
+                    </div>
+
+                    <div className="p-3 bg-white rounded-xl border border-earth-200">
+                      <span className="font-extrabold text-agri-900 uppercase tracking-wider text-[10px]">Destination Address</span>
+                      <p className="font-semibold text-earth-800 mt-1">
+                        {ord.shipping_address?.street_address}, {ord.shipping_address?.village_city}, {ord.shipping_address?.state} - {ord.shipping_address?.pincode}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Purchased Crop Items */}
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-extrabold uppercase text-earth-500">Ordered Items</span>
+                    {ord.items?.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between p-2.5 bg-white rounded-xl text-xs font-semibold">
+                        <div className="flex items-center space-x-3">
+                          <img src={item.image_url} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                          <div>
+                            <p className="font-bold text-agri-950">{item.product_title}</p>
+                            <p className="text-earth-500">{item.quantity} {item.unit} × ₹{item.price_per_unit}</p>
+                          </div>
+                        </div>
+                        <span className="font-extrabold text-agri-900">₹{item.subtotal}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Quick Action Step Workflow Buttons */}
+                  <div className="pt-2 border-t border-earth-200 flex flex-wrap items-center justify-end gap-2">
+                    <button
+                      onClick={() => handleUpdateOrderStatus(ord.id, 'confirmed')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center space-x-1 ${
+                        ord.status === 'confirmed' ? 'bg-agri-600 text-white shadow-md' : 'bg-white border text-earth-700 hover:bg-agri-50'
+                      }`}
+                    >
+                      <CheckCheck className="w-3.5 h-3.5" />
+                      <span>Confirm Order</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleUpdateOrderStatus(ord.id, 'packed')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center space-x-1 ${
+                        ord.status === 'packed' ? 'bg-amber-600 text-white shadow-md' : 'bg-white border text-earth-700 hover:bg-amber-50'
+                      }`}
+                    >
+                      <Box className="w-3.5 h-3.5" />
+                      <span>Mark Packed</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleUpdateOrderStatus(ord.id, 'shipped')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center space-x-1 ${
+                        ord.status === 'shipped' ? 'bg-blue-600 text-white shadow-md' : 'bg-white border text-earth-700 hover:bg-blue-50'
+                      }`}
+                    >
+                      <Truck className="w-3.5 h-3.5" />
+                      <span>Dispatch / Ship</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleUpdateOrderStatus(ord.id, 'delivered')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center space-x-1 ${
+                        ord.status === 'delivered' ? 'bg-emerald-600 text-white shadow-md' : 'bg-white border text-earth-700 hover:bg-emerald-50'
+                      }`}
+                    >
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      <span>Mark Delivered</span>
+                    </button>
+                  </div>
+
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -382,6 +519,110 @@ export const FarmerDashboard: React.FC = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* INVENTORY & STOCK TAB */}
+        {activeTab === 'inventory' && (
+          <div className="bg-white p-6 lg:p-8 rounded-3xl border border-agri-100 shadow-agri-card space-y-6">
+            <div>
+              <h3 className="text-lg font-black text-agri-950">Crop Inventory & Resource Management</h3>
+              <p className="text-xs text-earth-600 mt-1">Available crop quantities automatically adjust whenever buyers purchase items</p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-earth-200 text-earth-500 uppercase font-extrabold text-[10px]">
+                    <th className="py-3 px-4">Crop Listing</th>
+                    <th className="py-3 px-4">Category</th>
+                    <th className="py-3 px-4">Price / Unit</th>
+                    <th className="py-3 px-4">Available Resource Quantity</th>
+                    <th className="py-3 px-4">Stock Status</th>
+                    <th className="py-3 px-4">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-earth-100 font-semibold">
+                  {products.map((p) => (
+                    <tr key={p.id} className="hover:bg-earth-50">
+                      <td className="py-3 px-4 flex items-center space-x-3">
+                        <img src={p.images[0]} alt="" className="w-10 h-10 rounded-xl object-cover" />
+                        <span className="font-extrabold text-agri-950">{p.title}</span>
+                      </td>
+                      <td className="py-3 px-4 text-earth-700 capitalize">{p.category_id}</td>
+                      <td className="py-3 px-4 font-black text-agri-800">₹{p.price} / {p.unit}</td>
+                      <td className="py-3 px-4">
+                        <span className="font-black text-sm text-agri-950">{p.available_quantity} {p.unit}</span>
+                      </td>
+                      <td className="py-3 px-4">
+                        {p.available_quantity === 0 ? (
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-rose-100 text-rose-800 border border-rose-300">
+                            Out of Stock
+                          </span>
+                        ) : p.available_quantity < 50 ? (
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-900 border border-amber-300">
+                            Low Stock (&lt; 50 {p.unit})
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            Abundant Stock
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <button
+                          onClick={() => {
+                            const newQty = window.prompt(`Update available stock resource for "${p.title}" (${p.unit}):`, String(p.available_quantity));
+                            if (newQty !== null && !isNaN(Number(newQty))) {
+                              dbService.updateProduct(p.id, { available_quantity: Number(newQty) });
+                              showToast('Stock Resource Updated! 📦', `Updated to ${newQty} ${p.unit}`, 'success');
+                              loadDashboardData();
+                            }
+                          }}
+                          className="px-3 py-1 bg-agri-100 text-agri-800 hover:bg-agri-600 hover:text-white rounded-xl text-[11px] font-extrabold transition"
+                        >
+                          Restock Crop
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* KISAN EARNINGS TAB */}
+        {activeTab === 'earnings' && (
+          <div className="bg-white p-6 lg:p-8 rounded-3xl border border-agri-100 shadow-agri-card space-y-6">
+            <div>
+              <h3 className="text-lg font-black text-agri-950">Kisan Financial Revenue & Payouts</h3>
+              <p className="text-xs text-earth-600 mt-1">Real-time revenue calculation for direct farmer harvest sales</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="p-6 bg-gradient-to-br from-agri-800 to-agri-950 text-white rounded-3xl space-y-2 shadow-lg">
+                <span className="text-xs font-extrabold uppercase text-agri-200">Total Harvest Earnings</span>
+                <p className="text-3xl font-black text-white">₹{totalSales}</p>
+                <p className="text-[11px] text-emerald-300 font-semibold">100% Direct Farmer Margin (0% Commission)</p>
+              </div>
+
+              <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-3xl space-y-2">
+                <span className="text-xs font-extrabold uppercase text-emerald-900">Razorpay Prepaid Online</span>
+                <p className="text-3xl font-black text-emerald-700">
+                  ₹{orders.filter(o => o.payment_status === 'paid' && !o.payment_method.includes('COD')).reduce((sum, o) => sum + o.total_amount, 0)}
+                </p>
+                <p className="text-[11px] text-emerald-600 font-semibold">Direct Bank Escrow Payouts</p>
+              </div>
+
+              <div className="p-6 bg-amber-50 border border-amber-200 rounded-3xl space-y-2">
+                <span className="text-xs font-extrabold uppercase text-amber-900">Cash on Delivery (COD)</span>
+                <p className="text-3xl font-black text-amber-700">
+                  ₹{orders.filter(o => o.payment_method.includes('COD')).reduce((sum, o) => sum + o.total_amount, 0)}
+                </p>
+                <p className="text-[11px] text-amber-700 font-semibold">Collected by Delivery Transport</p>
+              </div>
             </div>
           </div>
         )}

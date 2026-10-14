@@ -2,8 +2,13 @@ import express from 'express';
 import cors from 'cors';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -78,6 +83,20 @@ app.post('/api/razorpay/verify-payment', (req, res) => {
   }
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'AgriConnect API is running 🌾', timestamp: new Date().toISOString() });
+});
+
+// Serve React frontend static files from dist/
+const distPath = path.join(__dirname, '..', 'dist');
+app.use(express.static(distPath));
+
+// For any non-API route, serve index.html (React Router SPA support)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
+});
+
 app.listen(PORT, () => {
-  console.log(`AgriConnect Payment Server running on port ${PORT}`);
+  console.log(`AgriConnect Server running on port ${PORT}`);
 });
